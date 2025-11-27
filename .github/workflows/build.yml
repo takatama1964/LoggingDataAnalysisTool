@@ -17,18 +17,20 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
-        cache: "pip"
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
-        pip install pyinstaller pandas customtkinter matplotlib
+        pip install pandas
+        pip install matplotlib
+        pip install customtkinter
+        pip install pyinstaller
 
-    - name: Build EXE
+    - name: Build
       run: |
-        pyinstaller graphCreateApp.py --onefile --windowed --name "CSVLoggingTool"
+        pyinstaller graphCreateApp.py --noconsole --onefile --name "LoggingDataAnalysisTool"
 
-    - name: Upload Artifact
+    - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
-        name: CSVLoggingTool-EXE
-        path: dist/CSVLoggingTool.exe
+        name: LoggingDataAnalysisTool
+        path: dist/LoggingDataAnalysisTool.exe
