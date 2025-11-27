@@ -1,0 +1,34 @@
+name: Build EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        cache: "pip"
+
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller pandas customtkinter matplotlib
+
+    - name: Build EXE
+      run: |
+        pyinstaller graphCreateApp.py --onefile --windowed --name "CSVLoggingTool"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: CSVLoggingTool-EXE
+        path: dist/CSVLoggingTool.exe
