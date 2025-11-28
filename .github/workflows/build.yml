@@ -33,4 +33,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: LoggingDataAnalysisTool
-        path: dist/LoggingDataAnalysisTool_test1.exe
+        path: dist/LoggingDataAnalysisTool.exe
