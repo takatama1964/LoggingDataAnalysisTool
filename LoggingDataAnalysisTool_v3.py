@@ -76,25 +76,51 @@ def save_config(data:dict):
     json.dump(data, open(CONFIG_FILE,"w",encoding="utf-8"), indent=2)
 
 
+def safe_read_csv(path, **kw):
+    """
+    sep / header / skiprows / nrows など既存引数を維持したまま、
+    UTF-8 / UTF-16 / Shift-JIS / CP932 を順番に試す。
+    """
+
+    encodings = [
+        "utf-8-sig",
+        "utf-8",
+        "utf-16",
+        "utf-16-le",
+        "utf-16-be",
+        "shift_jis",
+        "cp932",
+    ]
+
+    # pandas に渡す共通パラメータ
+    sep      = kw.get("sep", None)
+    header   = kw.get("header", "infer")
+    skiprows = kw.get("skiprows", None)
+    nrows    = kw.get("nrows", None)
+
+    params = {
+        "sep": sep,
+        "header": header,
+        "skiprows": skiprows,
+        "nrows": nrows,
+        "engine": "python",
+        "on_bad_lines": "skip",
+    }
+
+    for enc in encodings:
+        try:
+            return pd.read_csv(path, encoding=enc, **params)
+        except Exception:
+            continue
+
+    # 最後の fallback
+    return pd.read_csv(path, encoding="utf-8", encoding_errors="replace", **params)
+
 # ------------------------------------------------
 # CSV/TXT読込
 # ------------------------------------------------
 def read_data_auto(path):
-    enc = ["utf-8", "utf-16", "utf-16-le", "utf-16-be"]
-
-    for e in enc:
-        try:
-            return pd.read_csv(path, encoding=e)
-        except:
-            pass
-    
-    return safe_read_csv(path, encoding="utf-8")
-
-def safe_read_csv(path, **kw):
-    if "on_bad_lines" in kw and kw.get("engine") is None:
-        kw["engine"] = "ptrhon"
-    kw.setdefault("encoding_errors", "replace")
-    return pd.read_csv(path, **kw)
+    return safe_read_csv(path)
 
 
 # ------------------------------------------------
@@ -141,31 +167,19 @@ def get_start_end(path, sep, data_start_line):
 # ヘッダファイル（1行CSV/TXT）からヘッダ名リスト取得
 # ------------------------------------------------
 def read_header_line(path, sep=None):
-    enc = ["utf-8","utf-16","utf-16-le","utf-16-be"]
-    line = None
-    for e in enc:
-        try:
-            with open(path, "r", encoding=e) as f:
-                for raw in f:
-                    if raw.strip():
-                        line = raw.rstrip("\r\n")
-                        break
-            if line is not None:
-                break
-        except:
-            continue
-    if line is None:
+    try:
+        df = safe_read_csv(path, header=None, nrow=1)
+        if df is None or df.empty:
+            return None
+        
+        cols = df.iloc[0].tolist()
+
+        cols = [str(c).strip() for c in cols]
+        return cols
+    except Exception as e:
+        log.error(f"read_header_line エラー: {e}")
         return None
 
-    if sep is None:
-        if "\t" in line:
-            sep = "\t"
-        elif "," in line:
-            sep = ","
-        else:
-            sep = " "
-
-    cols = [c.strip() for c in line.split(sep)]
     return cols
 
 
