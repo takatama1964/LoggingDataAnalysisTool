@@ -705,10 +705,12 @@ class CSVApp(ctk.CTk):
     def _load_merge_files(self, d):
         self.ent_merge_out.delete(0,"end")
         self.ent_merge_out.insert(0,d)
-
         self.csv_files=sorted(list(Path(d).glob("*.csv")) + list(Path(d).glob("*.txt")))
-        #self.txt_merge.delete("0.0","end")
+
         for w in self.txt_merge.winfo_children(): 
+            w.destroy()
+
+        for w in self.inner_merge.winfo_children():
             w.destroy()
 
         sep_char = self._get_current_sep_char()
