@@ -323,6 +323,33 @@ class MergeSourceConfigFrame(ctk.CTkFrame):
             data_start=data_start
         )
 
+    
+    def set_params(self, params: dict):
+        """config.json から読み込んだ設定をUIへ反映"""
+        if not params:
+            return
+
+        self.var_enable.set(params.get("enable", False))
+
+        folder = params.get("folder", "")
+        self.ent_folder.delete(0, "end")
+        self.ent_folder.insert(0, folder)
+
+        # sep は表示名に戻す
+        sep_rev = {v:k for k,v in self.sep_display_to_actual.items()}
+        disp = sep_rev.get(params.get("sep", ","), "コンマ")
+        self.cmb_sep.set(disp)
+
+        self.ent_data_start.delete(0, "end")
+        self.ent_data_start.insert(0, str(params.get("data_start", 1)))
+
+        header_path = params.get("header_path", "")
+        self.ent_header_path.delete(0, "end")
+        self.ent_header_path.insert(0, header_path)
+
+        # header_cols はそのまま復元（内部変数のみ）
+        self.header_cols = params.get("header_cols", None)
+
 
     # ----------------- CSVApp 側から参照するための getter -----------------
     def get_params(self):
@@ -400,6 +427,10 @@ class CSVApp(ctk.CTk):
         self._setup_merge_tab()
         self._setup_merge_horizontal_tab()
         self._setup_bit_tab()
+
+        saved = self.config.get("hmerge_sources", [])
+        for src, params in zip(self.hmerge_sources, saved):
+            src.set_params(params)
 
 
     # =========================================================
@@ -805,9 +836,9 @@ class CSVApp(ctk.CTk):
         top = ctk.CTkFrame(frame)
         top.pack(fill="x", padx=10, pady=10)
 
-        ctk.CTkLabel(top, text="結合キー列名").pack(side="left")
+        ctk.CTkLabel(top, text="時間列番号").pack(side="left")
         self.ent_hmerge_key = ctk.CTkEntry(top, width=120)
-        self.ent_hmerge_key.insert(0, "TIME")   # とりあえず TIME をデフォルトに
+        self.ent_hmerge_key.insert(0, "1")   # とりあえず TIME をデフォルトに
         self.ent_hmerge_key.pack(side="left", padx=5)
 
         # --- 実行ボタン ---
@@ -852,6 +883,33 @@ class CSVApp(ctk.CTk):
         self.hmerge_file_view.pack(fill="both", expand=True)
 
 
+    def set_params(self, params: dict):
+        """config.json から読み込んだ設定をUIへ反映"""
+        if not params:
+            return
+
+        self.var_enable.set(params.get("enable", False))
+
+        folder = params.get("folder", "")
+        self.ent_folder.delete(0, "end")
+        self.ent_folder.insert(0, folder)
+
+        # sep は表示名に戻す
+        sep_rev = {v:k for k,v in self.sep_display_to_actual.items()}
+        disp = sep_rev.get(params.get("sep", ","), "コンマ")
+        self.cmb_sep.set(disp)
+
+        self.ent_data_start.delete(0, "end")
+        self.ent_data_start.insert(0, str(params.get("data_start", 1)))
+
+        header_path = params.get("header_path", "")
+        self.ent_header_path.delete(0, "end")
+        self.ent_header_path.insert(0, header_path)
+
+        # header_cols はそのまま復元（内部変数のみ）
+        self.header_cols = params.get("header_cols", None)
+
+
     def select_hmerge_save(self):
         d = filedialog.askdirectory()
         if d:
@@ -884,12 +942,17 @@ class CSVApp(ctk.CTk):
     # ▼▼▼ CSV横結合 ▼▼▼
     def run_merge_horizontal(self):
         try:
-            key_col = self.ent_hmerge_key.get().strip()
-            if not key_col:
-                MSG_ERR("エラー", "結合キー列名を入力してください")
+            try:
+                key_col_index = int(self.ent_hmerge_key.get().strip()) - 1
+                if key_col_index < 0:
+                    raise ValueError
+            except:
+                MSG_ERR("エラー", "時間列は１以上の整数で指定してください")
                 return
 
             dfs = []
+            start_times = []
+            end_times = []
 
             log.info("▶︎ CSV横結合開始")
 
@@ -931,10 +994,22 @@ class CSVApp(ctk.CTk):
                             f" データ列数({df.shape[1]})が不一致。ヘッダ適用スキップ"
                         )
 
+                if key_col_index >= len(df.columns):
+                    MSG_ERR("エラー", f"データセット{idx}: 時間列 {key_col_index+1} 列目が存在しません")
+                    return
+                key_col = df.columns[key_col_index]
+                df[key_col] = pd.to_datetime(df[key_col], errors="coerce")
+
+                st = df[key_col].min()
+                ed = df[key_col].max()
+                if pd.notna(st) and pd.notna(ed):
+                    start_times.append(st)
+                    end_times.append(ed)
+
                 # キー列チェック
                 if key_col not in df.columns:
-                    MSG_ERR("キー列エラー",
-                            f"データセット {idx} にキー列 '{key_col}' がありません")
+                    MSG_ERR("時間列エラー",
+                            f"データセット {idx} に時間列 '{key_col}列目' がありません")
                     log.warning(f"[横結合] データセット{idx}: キー列 {key_col} 不在")
                     continue
 
@@ -957,9 +1032,20 @@ class CSVApp(ctk.CTk):
                 MSG_ERR("エラー", "有効なデータセットがありません")
                 return
 
+            final_start = max(start_times)
+            final_end = min(end_times)
+            log.info(f"▼ 共通期間: {final_start} ~ {final_end}")
+
             # 実際の横結合（キー列で outer merge）
-            merged = dfs[0]
-            for df in dfs[1:]:
+            # ▼ 結合前に時間範囲でフィルタ
+            dfs_filtered = []
+            for df in dfs:
+                d = df[(df[key_col] >= final_start) & (df[key_col] <= final_end)].copy()
+                dfs_filtered.append(d)
+
+            # ▼ フィルタ済み DF たちで横結合
+            merged = dfs_filtered[0]
+            for df in dfs_filtered[1:]:
                 merged = pd.merge(merged, df, on=key_col, how="outer")
 
             out_dir = Path(self.ent_hmerge_out.get().strip() or ".")
@@ -975,6 +1061,19 @@ class CSVApp(ctk.CTk):
         except Exception as e:
             log.exception("⚠️ run_merge_horizontal()中にエラー発生")
             MSG_ERR("ERROR", str(e))
+
+        # 横結合設定を保存
+        cfg_sources = []
+        for src in self.hmerge_sources:
+            p = src.get_params()
+            if p:
+                p["enable"] = True
+            else:
+                p = {"enable": False}
+            cfg_sources.append(p)
+
+        self.config["hmerge_sources"] = cfg_sources
+        save_config(self.config)
 
 
     # =========================================================
