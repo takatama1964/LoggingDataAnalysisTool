@@ -1,0 +1,224 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+        x:Class="DataAnalysisTool.MainWindow"
+        Width="1400"
+        Height="900"
+        Title="DAT - Data Analysis Tool">
+
+    <Window.Styles>
+        <Style Selector="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>    
+
+        <Style Selector="TabItem">
+            <Setter Property="FontSize" Value="14"/> 
+            <Setter Property="Padding" Value="10,6"/>   
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="BorderBrush" Value="#BFBFBF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="ListBox">
+            <Setter Property="BorderBrush" Value="#BFBFBF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="BorderBrush" Value="#BFBFBF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="380,*"
+          RowDefinitions="Auto,*">
+
+        <Border Grid.ColumnSpan="2"
+                Background="#2B2B2B"
+                Padding="12">
+            <TextBlock Text="DAT - Data Analysis Tool"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="White"/>
+        </Border>
+
+        <Border Grid.Row="1"
+                Background="#F3F3F3"
+                Padding="10">
+
+            <Grid RowDefinitions="*,Auto">
+
+                <TabControl Grid.Row="0">
+
+                    <TabItem Header="データ">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="10"
+                                        Margin="0,0,12,0">
+
+                                <Button Content="CSVを開く"
+                                        Height="40"
+                                        Click="OpenCsv_Click"/>
+
+                                <TextBlock Text="X軸"/>
+                                <ComboBox x:Name="XColumnComboBox"
+                                          HorizontalAlignment="Stretch"/>
+
+                                <TextBlock Text="X軸表示形式"/>
+                                <ComboBox x:Name="XAxisModeComboBox"
+                                        SelectedIndex="0">
+                                    <ComboBoxItem Content="数値"/>
+                                    <ComboBoxItem Content="時刻"/>
+                                </ComboBox>
+
+                                <TextBlock Text="Y軸候補"/>
+                                <ListBox x:Name="YCandidateListBox"
+                                        Height="220"
+                                        SelectionMode="Multiple"/>
+
+                                <StackPanel Orientation="Horizontal" 
+                                            Spacing="8">
+                                        <Button Content="第1Y軸へ追加"
+                                                Height="36"
+                                                Click="AddToFirstY_Click"/>
+
+                                        <Button Content="第2Y軸へ追加"
+                                                Height="36"
+                                                Click="AddToSecondY_Click"/>
+                                </StackPanel>
+
+                                <TextBlock Text="第1Y軸 選択済み"/>
+                                <ListBox x:Name="FirstYSelectedListBox"
+                                        Height="120"
+                                        SelectionMode="Multiple"/>
+
+                                <Button Content="第1Y軸から削除"
+                                        Height="36"
+                                        Click="RemoveFirstY_Click"/>
+
+                                <TextBlock Text="第2Y軸 選択済み"/>
+                                <ListBox x:Name="SecondYSelectedListBox"
+                                        Height="120"
+                                        SelectionMode="Multiple"/>
+
+                                <Button Content="第2Y軸から削除"
+                                        Height="36"
+                                        Click="RemoveSecondY_Click"/>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="表示設定">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="10">
+
+                                <TextBlock Text="グラフタイトル"/>
+                                <TextBox x:Name="GraphTitleTextBox"
+                                        Text="CSV Graph"/>
+
+                                <TextBlock Text="X軸タイトル"/>
+                                <TextBox x:Name="XAxisTitleTextBox"/>
+
+                                <TextBlock Text="第1Y軸タイトル"/>
+                                <TextBox x:Name="FirstYAxisTitleTextBox"
+                                        Text="第1Y軸"/>
+
+                                <TextBlock Text="第2Y軸タイトル"/>
+                                <TextBox x:Name="SecondYAxisTitleTextBox"
+                                        Text="第2Y軸"/>
+
+                                <CheckBox x:Name="LegendCheckBox"
+                                        Content="凡例を表示"
+                                        IsChecked="True"/>
+
+                                <TextBlock Text="軸範囲"/>
+                                <TextBlock Text="X最小"/>
+                                <TextBox x:Name="XAxisMinTextBox"/>
+
+                                <TextBlock Text="X最大"/>
+                                <TextBox x:Name="XAxisMaxTextBox"/>
+
+                                <TextBlock Text="第1Y軸 最小"/>
+                                <TextBox x:Name="FirstYAxisMinTextBox"/>
+
+                                <TextBlock Text="第1Y軸 最大"/>
+                                <TextBox x:Name="FirstYAxisMaxTextBox"/>
+
+                                <TextBlock Text="第2Y軸 最小"/>
+                                <TextBox x:Name="SecondYAxisMinTextBox"/>
+
+                                <TextBlock Text="第2Y軸 最大"/>
+                                <TextBox x:Name="SecondYAxisMaxTextBox"/>
+
+                                <Button Content="軸範囲を適用"
+                                        Height="40"
+                                        Click="ApplyAxisRange_Click"/>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="出力">
+                        <StackPanel Spacing="10"
+                                    Margin="8">
+
+                            <Button Content="画像として保存"
+                                    Height="40"
+                                    Click="SaveGraphImage_Click"/>
+
+                            <Button Content="画像をコピー"
+                                    Height="40"/>
+
+                            <Button Content="データセット保存"
+                                    Height="40"/>
+
+                        </StackPanel>
+                    </TabItem>
+
+                </TabControl>
+
+                <Border Grid.Row="1"
+                        BorderBrush="#CCCCCC"
+                        BorderThickness="0,1,0,0"
+                        Padding="0,10,0,0"
+                        Margin="0,10,0,0">
+
+                    <StackPanel Spacing="8">
+
+                        <Button Content="グラフ描画"
+                                Height="44"
+                                Click="DrawGraph_Click"/>
+
+                        <Button Content="軸範囲リセット"
+                                Height="40"
+                                Click="ResetAxis_Click"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+        </Border>
+
+        <ScottPlot:AvaPlot x:Name="PlotView"
+                           Grid.Row="1"
+                           Grid.Column="1"
+                           Margin="10"/>
+
+    </Grid>
+
+</Window>
